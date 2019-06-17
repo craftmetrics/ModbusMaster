@@ -58,11 +58,11 @@ Call once class has been instantiated, typically within setup().
 @param &serial reference to serial port object (Serial, Serial1, ... Serial3)
 @ingroup setup
 */
-void ModbusMaster::begin(uint8_t slave, Stream &serial)
+void ModbusMaster::begin(uint8_t slave, uart_port_t port)
 {
 //  txBuffer = (uint16_t*) calloc(ku8MaxBufferSize, sizeof(uint16_t));
   _u8MBSlave = slave;
-  _serial = &serial;
+  _port = port;
   _u8TransmitBufferIndex = 0;
   u16TransmitBufferLength = 0;
   
@@ -78,22 +78,6 @@ void ModbusMaster::beginTransmission(uint16_t u16Address)
   _u16WriteAddress = u16Address;
   _u8TransmitBufferIndex = 0;
   u16TransmitBufferLength = 0;
-}
-
-// eliminate this function in favor of using existing MB request functions
-uint8_t ModbusMaster::requestFrom(uint16_t address, uint16_t quantity)
-{
-  uint8_t read;
-  // clamp to buffer length
-  if (quantity > ku8MaxBufferSize)
-  {
-    quantity = ku8MaxBufferSize;
-  }
-  // set rx buffer iterator vars
-  _u8ResponseBufferIndex = 0;
-  _u8ResponseBufferLength = read;
-
-  return read;
 }
 
 
@@ -702,20 +686,17 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   u8ModbusADU[u8ModbusADUSize] = 0;
 
   // flush receive buffer before transmitting request
-  while (_serial->read() != -1);
+  ESP_ERROR_CHECK(uart_flush(_port));
 
   // transmit request
   if (_preTransmission)
   {
     _preTransmission();
   }
-  for (i = 0; i < u8ModbusADUSize; i++)
-  {
-    _serial->write(u8ModbusADU[i]);
-  }
+  ESP_ERROR_CHECK(uart_write_bytes(_port, (char *)u8ModbusADU, u8ModbusADUSize));
   
   u8ModbusADUSize = 0;
-  _serial->flush();    // flush transmit buffer
+  ESP_ERROR_CHECK(uart_wait_tx_done(_port, portMAX_DELAY));
   if (_postTransmission)
   {
     _postTransmission();
@@ -725,12 +706,15 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   u32StartTime = millis();
   while (u8BytesLeft && !u8MBStatus)
   {
-    if (_serial->available())
+    int lenAvail = 0;
+    ESP_ERROR_CHECK(uart_get_buffered_data_len(_port, (size_t*)&lenAvail));
+    
+    if (lenAvail)
     {
 #if __MODBUSMASTER_DEBUG__
       digitalWrite(__MODBUSMASTER_DEBUG_PIN_A__, true);
 #endif
-      u8ModbusADU[u8ModbusADUSize++] = _serial->read();
+      uart_read_bytes(_port, &u8ModbusADU[u8ModbusADUSize++], 1, portMAX_DELAY);
       u8BytesLeft--;
 #if __MODBUSMASTER_DEBUG__
       digitalWrite(__MODBUSMASTER_DEBUG_PIN_A__, false);

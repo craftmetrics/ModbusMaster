@@ -47,8 +47,9 @@ Set to 1 to enable debugging features within class:
 #define __MODBUSMASTER_DEBUG_PIN_B__ 5
 
 /* _____STANDARD INCLUDES____________________________________________________ */
-// include types & constants of Wiring core API
-#include "Arduino.h"
+#include <stdint.h>
+
+#include "driver/uart.h"
 
 /* _____UTILITY MACROS_______________________________________________________ */
 
@@ -59,6 +60,9 @@ Set to 1 to enable debugging features within class:
 
 // functions to manipulate words
 #include "util/word.h"
+
+// functions that were provided by Arduino.h
+#include "util/compat.h"
 
 
 /* _____CLASS DEFINITIONS____________________________________________________ */
@@ -71,7 +75,7 @@ class ModbusMaster
   public:
     ModbusMaster();
    
-    void begin(uint8_t, Stream &serial);
+    void begin(uint8_t, uart_port_t port);
     void idle(void (*)());
     void preTransmission(void (*)());
     void postTransmission(void (*)());
@@ -194,7 +198,6 @@ class ModbusMaster
     void     clearTransmitBuffer();
     
     void beginTransmission(uint16_t);
-    uint8_t requestFrom(uint16_t, uint16_t);
     void sendBit(bool);
     void send(uint8_t);
     void send(uint16_t);
@@ -218,7 +221,7 @@ class ModbusMaster
     uint8_t  readWriteMultipleRegisters(uint16_t, uint16_t);
     
   private:
-    Stream* _serial;                                             ///< reference to serial port object
+    uart_port_t _port;                                            ///< uart port
     uint8_t  _u8MBSlave;                                         ///< Modbus slave (1..255) initialized in begin()
     static const uint8_t ku8MaxBufferSize                = 64;   ///< size of response/transmit buffers    
     uint16_t _u16ReadAddress;                                    ///< slave register from which to read
