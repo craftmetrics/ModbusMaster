@@ -1,3 +1,5 @@
+This fork aims to provide a component that can be used from a ESP-IDF project.
+
 # ModbusMaster
 [![GitHub release](https://img.shields.io/github/release/4-20ma/ModbusMaster.svg?maxAge=3600)][GitHub release]
 [![Travis](https://img.shields.io/travis/4-20ma/ModbusMaster.svg?maxAge=3600)][Travis]
