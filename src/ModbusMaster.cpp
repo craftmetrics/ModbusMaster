@@ -29,6 +29,14 @@ Arduino library for communicating with Modbus slaves over RS232/485 (via RTU pro
 /* _____PROJECT INCLUDES_____________________________________________________ */
 #include "ModbusMaster.h"
 
+// functions to calculate Modbus Application Data Unit CRC
+#include "util/crc16.h"
+
+// functions to manipulate words
+#include "util/word.h"
+
+// functions that were provided by Arduino.h
+#include "util/compat.h"
 
 /* _____GLOBAL VARIABLES_____________________________________________________ */
 
@@ -693,7 +701,7 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   {
     _preTransmission();
   }
-  ESP_ERROR_CHECK(uart_write_bytes(_port, (char *)u8ModbusADU, u8ModbusADUSize));
+  uart_write_bytes(_port, (char *)u8ModbusADU, u8ModbusADUSize);
   
   u8ModbusADUSize = 0;
   ESP_ERROR_CHECK(uart_wait_tx_done(_port, portMAX_DELAY));
